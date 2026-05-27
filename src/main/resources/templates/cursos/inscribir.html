@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Inscribir estudiantes</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+<div class="container">
+    <h1>Inscribir estudiantes al curso</h1>
+
+    <div class="confirm-box">
+        <p><strong>Curso:</strong> <span th:text="${curso.nombre}"></span></p>
+        <p><strong>Créditos:</strong> <span th:text="${curso.creditos}"></span></p>
+        <p><strong>Estudiantes inscritos:</strong> <span th:text="${#lists.size(curso.estudiantes)}"></span></p>
+    </div>
+
+    <h2>Estudiantes disponibles</h2>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Correo</th>
+            <th>Carrera</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${estudiantes}">
+            <td th:text="${e.nombre}"></td>
+            <td th:text="${e.apellido}"></td>
+            <td th:text="${e.correo}"></td>
+            <td th:text="${e.carrera}"></td>
+            <td class="actions">
+                <form th:action="@{/cursos/{cursoId}/inscribir/{estudianteId}(cursoId=${curso.id}, estudianteId=${e.id})}"
+                      method="post">
+                    <button type="submit">Inscribir</button>
+                </form>
+                <form th:action="@{/cursos/{cursoId}/desinscribir/{estudianteId}(cursoId=${curso.id}, estudianteId=${e.id})}"
+                      method="post">
+                    <button type="submit" class="button secondary">Desinscribir</button>
+                </form>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(estudiantes)}">
+            <td colspan="5" style="text-align:center; color:#6b7280;">
+                No hay estudiantes registrados.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <a class="button secondary" th:href="@{/cursos}">Volver</a>
+    </div>
+</div>
+</body>
+</html>
+

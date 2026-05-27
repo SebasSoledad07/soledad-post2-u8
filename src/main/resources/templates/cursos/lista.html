@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cursos</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+<div class="container">
+    <h1>Lista de Cursos</h1>
+
+    <div class="toolbar">
+        <a class="button" th:href="@{/cursos/nuevo}">Nuevo Curso</a>
+        <a class="button secondary" th:href="@{/estudiantes}">Ver Estudiantes</a>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Créditos</th>
+            <th>Estudiantes inscritos</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${cursos}">
+            <td th:text="${c.nombre}"></td>
+            <td th:text="${c.creditos}"></td>
+            <td th:text="${#lists.size(c.estudiantes)}"></td>
+            <td class="actions">
+                <a class="button secondary" th:href="@{/cursos/{id}/inscribir(id=${c.id})}">Gestionar</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(cursos)}">
+            <td colspan="4" style="text-align:center; color:#6b7280;">
+                No hay cursos registrados.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>
+

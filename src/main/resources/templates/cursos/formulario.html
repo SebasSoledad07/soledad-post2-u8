@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="${curso.id == null ? 'Nuevo Curso' : 'Editar Curso'}">Formulario Curso</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+<div class="container">
+    <h1 th:text="${curso.id == null ? 'Nuevo Curso' : 'Editar Curso'}"></h1>
+
+    <form th:action="@{/cursos/guardar}" th:object="${curso}" method="post">
+        <input type="hidden" th:field="*{id}" />
+
+        <div>
+            <label for="nombre">Nombre:</label>
+            <input id="nombre" type="text" th:field="*{nombre}" placeholder="Ej. Programación I" />
+            <span class="error" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></span>
+        </div>
+
+        <div>
+            <label for="creditos">Créditos:</label>
+            <input id="creditos" type="number" th:field="*{creditos}" min="0" placeholder="Ej. 3" />
+            <span class="error" th:if="${#fields.hasErrors('creditos')}" th:errors="*{creditos}"></span>
+        </div>
+
+        <div class="footer">
+            <button type="submit">Guardar</button>
+            <a class="button secondary" th:href="@{/cursos}">Cancelar</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>
+
