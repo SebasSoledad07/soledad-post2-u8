@@ -1,50 +1,174 @@
-# Estudiantes — CRUD con Spring Boot, Thymeleaf y MySQL
+# Estudiantes — CRUD de Estudiantes y Cursos con Spring Boot
 
-Proyecto de ejemplo que implementa un CRUD para la entidad Estudiante usando Spring Boot, Spring Data JPA, Hibernate, Thymeleaf y MySQL.
+Aplicación web construida con Spring Boot, Spring Data JPA, Hibernate, Thymeleaf y MySQL.
+Permite administrar dos entidades principales:
 
-## Contenido
-- `/src/main/java` — código Java (controller, service, repository, model)
-- `/src/main/resources/templates/estudiantes` — vistas Thymeleaf
-- `/src/main/resources/static/css/styles.css` — estilos aplicados a las vistas
-- `docs/screenshots` — capturas de pantalla del proyecto (lista en la sección "Screenshots")
+- `Estudiante`
+- `Curso`
 
-## Requisitos
-- Java 17 (JDK)
-- Maven (se incluye wrapper: `mvnw.cmd`)
-- MySQL 8 (opcional: H2 para desarrollo)
+Además, implementa una relación `@ManyToMany` para inscribir estudiantes en cursos.
 
-## Configuración de MySQL (crear base de datos y usuario)
-1. Arranca el servicio MySQL en Windows (ejecuta PowerShell como Administrador si es necesario):
+---
 
-```powershell
-# iniciar servicio (si el servicio se llama MySQL80)
-Start-Service -Name MySQL80
-Test-NetConnection -ComputerName localhost -Port 3306
+## 1. Estructura general del proyecto
+
+- `src/main/java/com/universidad/estudiantes/controller` — controladores MVC.
+- `src/main/java/com/universidad/estudiantes/service` — lógica de negocio.
+- `src/main/java/com/universidad/estudiantes/repository` — acceso a datos con JPA.
+- `src/main/java/com/universidad/estudiantes/model` — entidades JPA.
+- `src/main/resources/templates/estudiantes` — vistas de estudiantes.
+- `src/main/resources/templates/cursos` — vistas de cursos.
+- `src/main/resources/static/css/styles.css` — estilos globales.
+- `docs/screenshots` — evidencias visuales del funcionamiento.
+
+---
+
+## 2. Entidad `Estudiante`
+
+Archivo: `src/main/java/com/universidad/estudiantes/model/Estudiante.java`
+
+### Atributos principales
+
+- `Long id`
+- `String nombre`
+- `String apellido`
+- `String correo`
+- `String carrera`
+
+### Anotaciones importantes
+
+- `@Entity`
+- `@Table(name = "estudiantes")`
+- `@Id`
+- `@GeneratedValue(strategy = GenerationType.IDENTITY)`
+- validaciones con Bean Validation:
+  - `@NotBlank`
+  - `@Size`
+  - `@Email`
+
+### Relación con cursos
+
+La entidad también tiene una colección de cursos:
+
+- `Set<Curso> cursos`
+- lado inverso de la relación `@ManyToMany`
+
+---
+
+## 3. Entidad `Curso`
+
+Archivo: `src/main/java/com/universidad/estudiantes/model/Curso.java`
+
+### Atributos principales
+
+- `Long id`
+- `String nombre`
+- `int creditos`
+- `Set<Estudiante> estudiantes`
+
+### Anotaciones importantes
+
+- `@Entity`
+- `@Table(name = "cursos")`
+- `@Id`
+- `@GeneratedValue(strategy = GenerationType.IDENTITY)`
+- validación en el nombre con `@NotBlank`
+
+### Relación con estudiantes
+
+`Curso` es el lado propietario de la relación:
+
+- define la tabla intermedia `curso_estudiante`
+- controla las columnas `curso_id` y `estudiante_id`
+- usa métodos auxiliares:
+  - `agregarEstudiante(Estudiante e)`
+  - `quitarEstudiante(Estudiante e)`
+
+---
+
+## 4. Diagrama ER de la relación `@ManyToMany`
+
+La relación entre estudiantes y cursos es de **muchos a muchos**:
+
+```text
+ESTUDIANTES                      CURSOS
+--------------                   --------------
+id (PK)                          id (PK)
+nombre                           nombre
+apellido                         creditos
+correo
+carrera
+     \                             /
+      \                           /
+       \                         /
+        \                       /
+         \                     /
+          \                   /
+           \                 /
+            \               /
+             \             /
+              \           /
+               \         /
+                \       /
+                 \     /
+                  \   /
+             CURSO_ESTUDIANTE
+             -----------------
+             curso_id (FK)
+             estudiante_id (FK)
 ```
 
-2. Conéctate con MySQL Workbench o mysql client como `root` y ejecuta:
+### Interpretación
+
+- Un estudiante puede inscribirse en varios cursos.
+- Un curso puede tener varios estudiantes.
+- La tabla intermedia `curso_estudiante` guarda la relación.
+
+---
+
+## 5. Configuración de la base de datos MySQL
+
+### Requisitos
+
+- Java 17
+- Maven
+- MySQL 8
+
+### Crear base de datos y usuario
+
+Conéctate con MySQL Workbench o con el cliente `mysql` y ejecuta:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS estudiantes_db
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
--- Crear usuario con plugin mysql_native_password (recomendado para desarrollo)
-CREATE USER IF NOT EXISTS 'appuser'@'localhost' IDENTIFIED WITH mysql_native_password BY 'apppass';
+CREATE USER IF NOT EXISTS 'appuser'@'localhost'
+  IDENTIFIED WITH mysql_native_password BY 'apppass';
+
 GRANT ALL PRIVILEGES ON estudiantes_db.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-3. Verifica plugin del usuario (opcional):
+Si quieres verificar el plugin del usuario:
 
 ```sql
-SELECT user, host, plugin FROM mysql.user WHERE user = 'appuser';
+SELECT user, host, plugin
+FROM mysql.user
+WHERE user = 'appuser';
 ```
 
-## Configuración en `application.properties`
-Edita `src/main/resources/application.properties` y ajusta las credenciales si es necesario. Ejemplo usado en este proyecto:
+---
+
+## 6. Configuración de `application.properties`
+
+Archivo: `src/main/resources/application.properties`
+
+Ejemplo recomendado:
 
 ```properties
+server.port=8080
+
 spring.datasource.url=jdbc:mysql://localhost:3306/estudiantes_db?useSSL=false&serverTimezone=UTC
 spring.datasource.username=appuser
 spring.datasource.password=apppass
@@ -53,69 +177,135 @@ spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-# spring.jpa.database-platform can be omitted; Hibernate detecta el dialect automáticamente
-server.port=8080
 ```
 
-Si recibes el error "Public Key Retrieval is not allowed" puedes:
-- Añadir `&allowPublicKeyRetrieval=true` a la URL JDBC (rápido, solo desarrollo):
-  `jdbc:mysql://localhost:3306/estudiantes_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true`
-- O mejor: cambiar el plugin del usuario a `mysql_native_password` (ver SQL arriba).
+### Si aparece el error `Public Key Retrieval is not allowed`
 
-## Compilar y ejecutar
-Nota: necesitas Java 17 en `PATH`/`JAVA_HOME` para ejecutar el JAR generado.
+Puedes resolverlo de dos maneras:
 
-Empaquetar:
+1. **Rápida para desarrollo**: agregar `allowPublicKeyRetrieval=true` a la URL JDBC.
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/estudiantes_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+```
+
+2. **Recomendada**: mantener el usuario con `mysql_native_password`, como en el SQL anterior.
+
+---
+
+## 7. Cómo ejecutar el proyecto
+
+### Con Maven Wrapper
+
 ```powershell
 .\mvnw.cmd -DskipTests package
+.\mvnw.cmd spring-boot:run
 ```
 
-Ejecutar JAR:
+### Ejecutando el JAR
+
 ```powershell
 java -jar target\estudiantes-0.0.1-SNAPSHOT.jar
 ```
 
-O ejecutar con Maven (si tu mvn usa JDK 17):
-```powershell
-.\mvnw.cmd spring-boot:run
-```
+> Nota: para ejecutar el JAR necesitas Java 17 en tu `PATH` o `JAVA_HOME`.
 
-## Rutas principales
-- Lista: `http://localhost:8080/estudiantes`
-- Nuevo: `http://localhost:8080/estudiantes/nuevo`
+---
 
-## Ubicación de vistas y CSS
-- Plantillas Thymeleaf: `src/main/resources/templates/estudiantes`
-- CSS estático: `src/main/resources/static/css/styles.css` — ya enlazado desde las vistas
+## 8. Rutas principales de la aplicación
 
-## Screenshots
-Las capturas de pantalla del proyecto están en `docs/screenshots`. Abre esa carpeta en el explorador o en tu editor para ver los archivos. Ejemplos:
+### Estudiantes
 
-- docs/screenshots/tablas-consola.png
-- docs/screenshots/estudiantes-creados.png
-- docs/screenshots/estudiantes-creados-db.png
+- `http://localhost:8080/estudiantes`
+- `http://localhost:8080/estudiantes/nuevo`
 
-![Tablas creadas](docs/screenshots/tablas-consola.png)
-![Estudiantes Creados](docs/screenshots/estudiantes-creados.png)
-![Estudiantes en DB](docs/screenshots/estudiantes-creados-db.png)
-![Error con Correo Duplicado](docs/screenshots/error-correo-duplicado.png)
-![Cambios Realizados](docs/screenshots/cambios-hechos.png)
+### Cursos
 
+- `http://localhost:8080/cursos`
+- `http://localhost:8080/cursos/nuevo`
+- `http://localhost:8080/cursos/{id}/inscribir`
 
+---
 
-## Errores comunes y cómo resolverlos
-- The connection property 'useSSL' ... The value '' is not acceptable: revisa que la URL JDBC esté en UNA sola línea y que `useSSL` tenga un valor (`true`/`false`).
-- Communications link failure / Connection refused: MySQL no está en ejecución, puerto bloqueado o servidor escucha en otra IP/puerto. Arranca el servicio y usa `Test-NetConnection`.
-- Public Key Retrieval is not allowed: añadir `allowPublicKeyRetrieval=true` en la URL (dev) o cambiar plugin de usuario a `mysql_native_password`.
-- UnsupportedClassVersionError: necesitas Java 17+ (el proyecto está configurado para Java 17 en `pom.xml`).
+## 9. Vistas Thymeleaf
 
-## Buenas prácticas
-- No dejes `allowPublicKeyRetrieval=true` en producción sin asegurar la conexión (usa SSL/TLS o credenciales seguras).
-- Usa usuarios con permisos mínimos en producción.
+### Estudiantes
 
-## Contribuir
-- Puedes sumar estilos, validaciones en frontend o internacionalización. Sigue la estructura por capas (controller/service/repository/model) y las convenciones Java/Thymeleaf existentes.
+- `src/main/resources/templates/estudiantes/lista.html`
+- `src/main/resources/templates/estudiantes/formulario.html`
+- `src/main/resources/templates/estudiantes/confirmar-eliminar.html`
 
+### Cursos
 
+- `src/main/resources/templates/cursos/lista.html`
+- `src/main/resources/templates/cursos/formulario.html`
+- `src/main/resources/templates/cursos/inscribir.html`
 
+### Estilos
 
+- `src/main/resources/static/css/styles.css`
+
+---
+
+## 10. Capturas de pantalla
+
+Las capturas están en `docs/screenshots`.
+
+### Unidad 1 — Estudiantes
+
+- `docs/screenshots/u1/tablas-consola.png`
+- `docs/screenshots/u1/estudiantes-creados.png`
+- `docs/screenshots/u1/estudiantes-creados-db.png`
+- `docs/screenshots/u1/error-correo-duplicado.png`
+- `docs/screenshots/u1/cambios-hechos.png`
+
+### Unidad 2 — Tablas y relación de cursos
+
+- `docs/screenshots/u2/creacion-tablas.png`
+- `docs/screenshots/u2/estudiantes-inscritos.png`
+
+### Evidencia de inscripción funcionando
+
+La captura `docs/screenshots/u2/estudiantes-inscritos.png` muestra el flujo de inscripción funcionando correctamente.
+La captura `docs/screenshots/u2/creacion-tablas.png` muestra la creación de las tablas necesarias para la relación.
+
+### Vista previa en el README
+
+![Tablas creadas](docs/screenshots/u1/tablas-consola.png)
+![Estudiantes creados](docs/screenshots/u1/estudiantes-creados.png)
+![Estudiantes en DB](docs/screenshots/u1/estudiantes-creados-db.png)
+![Error con correo duplicado](docs/screenshots/u1/error-correo-duplicado.png)
+![Cambios realizados](docs/screenshots/u1/cambios-hechos.png)
+![Creación de tablas](docs/screenshots/u2/creacion-tablas.png)
+![Estudiantes inscritos](docs/screenshots/u2/estudiantes-inscritos.png)
+
+---
+
+## 11. Errores comunes y solución rápida
+
+- **`useSSL` con valor vacío**: revisa que la URL JDBC esté en una sola línea.
+- **`Communications link failure`**: MySQL no está corriendo o el puerto 3306 no responde.
+- **`Public Key Retrieval is not allowed`**: agrega `allowPublicKeyRetrieval=true` o usa `mysql_native_password`.
+- **`UnsupportedClassVersionError`**: necesitas Java 17.
+
+---
+
+## 12. Buenas prácticas aplicadas
+
+- Separación por capas: controller / service / repository / model.
+- Inyección por constructor.
+- Uso de `@Transactional` en servicios.
+- Uso de Bean Validation en formularios.
+- Estilos centralizados en una sola hoja CSS.
+
+---
+
+## 13. Resumen funcional
+
+La aplicación permite:
+
+- crear, editar y eliminar estudiantes,
+- crear y listar cursos,
+- inscribir y desinscribir estudiantes en cursos,
+- visualizar la relación en la tabla intermedia `curso_estudiante`,
+- y documentar el proceso con capturas en `docs/screenshots`.
